@@ -74,6 +74,6 @@ app.post("/api/score", (req, res) => {
   res.json({ rank: rank || null, total: trimmed.length, top: trimmed.slice(0, 10) });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`阿尔法狂飙 running → http://localhost:${PORT}`);
 });
