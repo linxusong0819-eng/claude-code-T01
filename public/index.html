@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Alpha Rush" />
+<meta name="theme-color" content="#0a0e17" />
+<meta name="color-scheme" content="dark" />
+<title>阿尔法狂飙 — 90 秒操盘挑战</title>
+<style>
+  :root{
+    --bg:#0a0e17; --panel:#111726; --panel2:#0d1320; --grid:#1c2740;
+    --green:#1fd286; --red:#ff4d6a; --amber:#ffce4a; --txt:#e8edf7;
+    --muted:#7d8aa5; --accent:#4ea1ff; --line:#2a3550;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:radial-gradient(1200px 700px at 70% -10%,#15203a 0%,var(--bg) 60%);
+    color:var(--txt);font:14px/1.4 "SF Mono",ui-monospace,Menlo,Consolas,monospace;
+    display:flex;align-items:center;justify-content:center;padding:18px;
+    -webkit-font-smoothing:antialiased;overflow:hidden;
+  }
+  .app{width:min(1080px,100%);height:min(720px,96vh);background:var(--panel);
+    border:1px solid var(--line);border-radius:14px;display:flex;flex-direction:column;
+    box-shadow:0 30px 80px rgba(0,0,0,.55);overflow:hidden}
+  header{display:flex;align-items:center;gap:14px;padding:12px 18px;
+    border-bottom:1px solid var(--line);background:linear-gradient(180deg,#16203a,#101626)}
+  .logo{font-weight:800;letter-spacing:2px;font-size:16px}
+  .logo b{color:var(--accent)}
+  .ticker{flex:1;overflow:hidden;white-space:nowrap;color:var(--muted);font-size:12px;
+    -webkit-mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}
+  .ticker span{display:inline-block;padding-left:100%;animation:scroll 22s linear infinite}
+  @keyframes scroll{to{transform:translateX(-100%)}}
+  .clock{font-weight:800;font-size:18px;color:var(--amber);min-width:70px;text-align:right}
+  .stage{flex:1;display:grid;grid-template-columns:1fr 248px;min-height:0}
+  .chartwrap{position:relative;border-right:1px solid var(--line)}
+  canvas{display:block;width:100%;height:100%}
+  .side{display:flex;flex-direction:column;background:var(--panel2)}
+  .stat{display:flex;justify-content:space-between;padding:9px 16px;border-bottom:1px solid #161e30;font-size:13px}
+  .stat .k{color:var(--muted)}
+  .stat .v{font-weight:700}
+  .big{padding:14px 16px;border-bottom:1px solid #161e30}
+  .big .lbl{color:var(--muted);font-size:11px;letter-spacing:1px}
+  .big .num{font-size:30px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums}
+  .pos{padding:12px 16px;border-bottom:1px solid #161e30;font-size:12px;color:var(--muted)}
+  .pos .tag{display:inline-block;padding:2px 9px;border-radius:6px;font-weight:800;
+    font-size:12px;letter-spacing:1px;color:#06121f}
+  .controls{margin-top:auto;padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  button{font:inherit;font-weight:800;letter-spacing:1px;border:0;border-radius:9px;
+    padding:14px 0;cursor:pointer;color:#06121f;transition:transform .05s,filter .15s}
+  button:active{transform:translateY(1px) scale(.98)}
+  button:disabled{opacity:.35;cursor:not-allowed}
+  .buy{background:var(--green)} .sell{background:var(--red);color:#fff}
+  .flat{grid-column:span 2;background:#2c3a58;color:var(--txt)}
+  .lev{grid-column:span 2;display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px}
+  .lev input{flex:1;accent-color:var(--accent)}
+  .pos-up{color:var(--green)} .pos-down{color:var(--red)}
+  .overlay{position:absolute;inset:0;background:rgba(7,11,20,.92);display:flex;
+    flex-direction:column;align-items:center;justify-content:center;text-align:center;
+    padding:30px;z-index:5;backdrop-filter:blur(3px)}
+  .overlay h1{font-size:34px;letter-spacing:3px;margin-bottom:6px}
+  .overlay h1 b{color:var(--accent)}
+  .overlay p{color:var(--muted);max-width:460px;margin-bottom:8px}
+  .overlay .keys{color:var(--muted);font-size:12px;margin:14px 0 22px}
+  .overlay .keys kbd{background:#1d2840;border:1px solid var(--line);border-radius:5px;
+    padding:2px 7px;color:var(--txt);margin:0 2px}
+  .start{background:var(--green);color:#06121f;padding:15px 46px;font-size:16px;border-radius:10px}
+  .nick{background:#0d1320;border:1px solid var(--line);color:var(--txt);
+    font:inherit;text-align:center;padding:11px 14px;border-radius:9px;width:240px;
+    margin-bottom:12px;outline:none}
+  .nick:focus{border-color:var(--accent)}
+  .board{margin-top:16px;width:min(420px,86vw);font-size:13px}
+  .board .bh{color:var(--muted);font-size:11px;letter-spacing:2px;margin-bottom:6px}
+  .board .row{display:flex;justify-content:space-between;padding:5px 10px;
+    border-bottom:1px solid #161e30;color:var(--muted)}
+  .board .row b{color:var(--txt);font-weight:700}
+  .board .row.me{background:rgba(78,161,255,.12);border-radius:6px;color:var(--txt)}
+  .board .rk{width:26px;text-align:right;margin-right:10px;color:var(--accent);font-weight:800}
+  .board .nm{flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .scoreline{font-size:15px;margin:6px 0;color:var(--txt)}
+  .scoreline b{color:var(--amber)}
+  .grade{font-size:64px;font-weight:900;letter-spacing:2px;margin:6px 0}
+  .metrics{display:grid;grid-template-columns:1fr 1fr;gap:6px 28px;margin:14px 0 4px;
+    font-size:13px;color:var(--muted);text-align:left}
+  .metrics b{color:var(--txt);float:right}
+  .hint{position:absolute;left:14px;top:12px;font-size:12px;color:var(--muted);
+    background:rgba(10,15,25,.6);padding:4px 9px;border-radius:6px;border:1px solid var(--line)}
+  .flash{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .12s}
+  .combo{position:absolute;right:16px;top:12px;font-weight:900;font-size:20px;
+    color:var(--amber);opacity:0;transition:opacity .2s;text-shadow:0 0 14px rgba(255,206,74,.6)}
+  /* ---- touch / iOS ---- */
+  html,body{overscroll-behavior:none;touch-action:none;
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  button{-webkit-tap-highlight-color:transparent}
+  .lev input{touch-action:auto}
+  @media (max-width:760px),(orientation:portrait){
+    body{padding:0;align-items:stretch;justify-content:stretch}
+    .app{width:100%;height:100dvh;border:0;border-radius:0;
+      padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+    header{padding:10px 14px;gap:10px}
+    .logo{font-size:14px} .clock{font-size:16px;min-width:56px}
+    .ticker{font-size:11px}
+    .stage{grid-template-columns:1fr;grid-template-rows:1fr auto}
+    .chartwrap{border-right:0;border-bottom:1px solid var(--line)}
+    .side{flex-direction:row;flex-wrap:wrap;align-items:stretch}
+    .big{flex:1 1 40%;border-bottom:0;border-right:1px solid #161e30;padding:10px 14px}
+    .big .num{font-size:22px}
+    .stat{flex:1 1 28%;flex-direction:column;gap:1px;border-bottom:0;
+      border-right:1px solid #161e30;padding:8px 10px;font-size:12px;justify-content:center}
+    .pos{flex:1 1 100%;order:5;padding:8px 14px;border-bottom:0;border-top:1px solid #161e30}
+    .controls{flex:1 1 100%;order:6;margin-top:0;grid-template-columns:1fr 1fr;
+      gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+      border-top:1px solid #161e30}
+    button{padding:18px 0;font-size:15px}
+    .overlay h1{font-size:26px} .overlay p{font-size:13px}
+    .overlay .keys{display:none}
+    .grade{font-size:52px}
+    .start{padding:16px 38px;width:auto}
+  }
+  @media (max-width:760px) and (orientation:landscape){
+    .stage{grid-template-columns:1fr 220px;grid-template-rows:1fr}
+    .side{flex-direction:column}
+    .big{flex:0 0 auto;border-right:0;border-bottom:1px solid #161e30}
+    .stat{flex:0 0 auto;flex-direction:row;border-right:0;border-bottom:1px solid #161e30}
+    .pos{order:0} .controls{order:0}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">ALPHA<b>RUSH</b></div>
+    <div class="ticker"><span id="tape">合成标的交易席 · 看盘做单 · 90 秒内把 $10,000 做大 · 可做多做空 · 杠杆最高 10 倍 · 留意新闻</span></div>
+    <div class="clock" id="clock">1:30</div>
+  </header>
+  <div class="stage">
+    <div class="chartwrap">
+      <canvas id="chart"></canvas>
+      <div class="hint" id="hint">SYNTHX · <span id="px">100.00</span></div>
+      <div class="combo" id="combo"></div>
+      <div class="flash" id="flash"></div>
+      <div class="overlay" id="overlay">
+        <h1>阿尔法<b>狂飙</b></h1>
+        <p>你是自营交易台的操盘手。一个合成标的、实时盘口、90 秒。
+           低吸高抛、追势顺势 —— 把 <b>$10,000</b> 尽可能做大。</p>
+        <div class="keys">
+          <kbd>B</kbd> 做多 &nbsp; <kbd>S</kbd> 做空 &nbsp; <kbd>F</kbd> 平仓 &nbsp;
+          <kbd>↑</kbd><kbd>↓</kbd> 调杠杆 &nbsp; <kbd>空格</kbd> 暂停
+        </div>
+        <input id="nick" class="nick" maxlength="16" placeholder="输入你的名号" autocomplete="off" />
+        <button class="start" id="startBtn">开始交易</button>
+        <div class="scoreline" id="bestLine"></div>
+        <div class="board" id="board"></div>
+      </div>
+    </div>
+    <div class="side">
+      <div class="big">
+        <div class="lbl">账户净值</div>
+        <div class="num" id="equity">$10,000</div>
+      </div>
+      <div class="stat"><span class="k">浮动盈亏</span><span class="v" id="upnl">$0</span></div>
+      <div class="stat"><span class="k">收益率</span><span class="v" id="ret">0.0%</span></div>
+      <div class="stat"><span class="k">交易次数 / 胜率</span><span class="v" id="trades">0 / —</span></div>
+      <div class="pos" id="posbox">空仓 — 暂无持仓</div>
+      <div class="controls">
+        <button class="buy"  id="buyBtn">做多</button>
+        <button class="sell" id="sellBtn">做空</button>
+        <button class="flat" id="flatBtn">平仓</button>
+        <div class="lev">
+          <span>杠杆</span>
+          <input type="range" id="lev" min="1" max="10" step="1" value="2" />
+          <span id="levv" style="color:var(--accent);font-weight:800">2x</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(()=>{
+"use strict";
+const $=id=>document.getElementById(id);
+const cv=$("chart"), ctx=cv.getContext("2d");
+const fmt=n=>(n<0?"-":"")+"$"+Math.abs(Math.round(n)).toLocaleString();
+const fmt2=n=>n.toFixed(2);
+
+const START_CASH=10000, ROUND_MS=90000;
+let dpr=1;
+function resize(){
+  dpr=Math.min(2,window.devicePixelRatio||1);
+  cv.width=cv.clientWidth*dpr; cv.height=cv.clientHeight*dpr;
+}
+window.addEventListener("resize",resize);
+
+// ---- price engine: regime-switching GBM + jump (news) ----
+const NEWS=[
+  ["央行意外降息，风险偏好回升",  +1, .9],
+  ["通胀数据爆表，盘面抛压",      -1, .9],
+  ["权重股财报大超预期",          +1, .7],
+  ["业绩指引下调，遭集体降级",    -1, .8],
+  ["空头回补加速，逼空行情",      +1,1.0],
+  ["流动性骤然枯竭",              -1,1.1],
+  ["公司宣布大额回购",            +1, .6],
+  ["监管部门启动调查",            -1, .8],
+];
+let G=null;
+function newGame(){
+  G={
+    t:0, price:100, prevPrice:100, candles:[], cur:null, ticks:0,
+    cash:START_CASH, pos:0, qty:0, entry:0, lev:+$("lev").value,
+    realized:0, trades:0, wins:0, equity:START_CASH, peak:START_CASH,
+    maxDD:0, rets:[], lastEq:START_CASH, combo:0, mult:1,
+    drift:0.02, vol:0.9, regimeLeft:120, running:false, paused:false,
+    startTime:0, news:"", newsLeft:0
+  };
+}
+function rnd(){return (Math.random()*2-1);}
+function gauss(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+
+function step(){
+  // regime switching
+  if(--G.regimeLeft<=0){
+    G.regimeLeft=60+Math.random()*140;
+    G.drift=(rnd())*0.06;            // trend up/down/sideways
+    G.vol=0.45+Math.random()*1.25;   // calm vs stormy
+  }
+  // news jump
+  if(G.newsLeft>0) G.newsLeft--;
+  if(Math.random()<0.012){
+    const n=NEWS[(Math.random()*NEWS.length)|0];
+    G.news=n[0]; G.newsLeft=70;
+    G.drift+=n[1]*0.05*n[2];
+    G.price*=1+n[1]*n[2]*(0.006+Math.random()*0.012);
+  }
+  const dt=1/120;
+  const ret=(G.drift-0.5*G.vol*G.vol)*dt + G.vol*Math.sqrt(dt)*gauss();
+  G.prevPrice=G.price;
+  G.price=Math.max(2,G.price*Math.exp(ret));
+  G.ticks++;
+  // candle aggregation: 1 candle / 12 ticks
+  if(!G.cur || G.ticks%12===0){
+    if(G.cur) G.candles.push(G.cur);
+    if(G.candles.length>90) G.candles.shift();
+    G.cur={o:G.price,h:G.price,l:G.price,c:G.price};
+  }
+  G.cur.c=G.price;
+  G.cur.h=Math.max(G.cur.h,G.price);
+  G.cur.l=Math.min(G.cur.l,G.price);
+  // mark to market
+  const upnl=G.pos!==0 ? G.qty*(G.price-G.entry)*G.pos : 0;
+  G.equity=G.cash+upnl;
+  G.peak=Math.max(G.peak,G.equity);
+  G.maxDD=Math.max(G.maxDD,(G.peak-G.equity)/G.peak);
+}
+
+function openPos(dir){
+  if(!G.running||G.paused) return;
+  if(G.pos===dir) return;
+  if(G.pos!==0) flatten(true);
+  G.lev=+$("lev").value;
+  const notional=G.cash*G.lev;
+  G.qty=notional/G.price;
+  G.entry=G.price; G.pos=dir;
+  renderPos();
+}
+function flatten(silent){
+  if(G.pos===0) return;
+  const pnl=G.qty*(G.price-G.entry)*G.pos;
+  G.cash+=pnl; G.realized+=pnl; G.trades++;
+  if(pnl>0){G.wins++; G.combo++; G.mult=Math.min(5,1+G.combo*0.5);}
+  else {G.combo=0; G.mult=1;}
+  // margin wipeout protection
+  if(G.cash<1) G.cash=1;
+  G.pos=0; G.qty=0; G.entry=0; G.equity=G.cash;
+  if(!silent){ flash(pnl>=0); showCombo(); }
+  renderPos(); renderSide();
+}
+function flash(good){
+  const f=$("flash");
+  f.style.background=good?"radial-gradient(circle,rgba(31,210,134,.35),transparent 70%)"
+                         :"radial-gradient(circle,rgba(255,77,106,.35),transparent 70%)";
+  f.style.opacity=1; setTimeout(()=>f.style.opacity=0,140);
+}
+function showCombo(){
+  const c=$("combo");
+  if(G.combo>=2){ c.textContent="🔥 连胜 x"+G.mult.toFixed(1);
+    c.style.opacity=1; clearTimeout(c._t); c._t=setTimeout(()=>c.style.opacity=0,1400);}
+}
+
+// ---- rendering ----
+function draw(){
+  const W=cv.width,H=cv.height,pad=10*dpr;
+  ctx.clearRect(0,0,W,H);
+  // grid
+  ctx.strokeStyle="#1c2740";ctx.lineWidth=1;
+  for(let i=0;i<=5;i++){const y=pad+(H-2*pad)*i/5;
+    ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  const cs=G.candles.concat(G.cur?[G.cur]:[]);
+  if(cs.length<2)return;
+  let lo=Infinity,hi=-Infinity;
+  for(const k of cs){lo=Math.min(lo,k.l);hi=Math.max(hi,k.h);}
+  const span=(hi-lo)||1; lo-=span*0.08; hi+=span*0.08;
+  const Y=p=>pad+(H-2*pad)*(1-(p-lo)/(hi-lo));
+  const n=cs.length, bw=(W-2*pad)/Math.max(40,n), body=Math.max(2*dpr,bw*0.62);
+  for(let i=0;i<n;i++){
+    const k=cs[i], x=pad+bw*i+bw/2, up=k.c>=k.o;
+    ctx.strokeStyle=ctx.fillStyle=up?"#1fd286":"#ff4d6a";
+    ctx.lineWidth=Math.max(1,dpr);
+    ctx.beginPath();ctx.moveTo(x,Y(k.h));ctx.lineTo(x,Y(k.l));ctx.stroke();
+    const yo=Y(k.o),yc=Y(k.c);
+    ctx.fillRect(x-body/2,Math.min(yo,yc),body,Math.max(2*dpr,Math.abs(yc-yo)));
+  }
+  // entry line
+  if(G.pos!==0){
+    const ey=Y(G.entry);
+    ctx.setLineDash([6*dpr,5*dpr]);
+    ctx.strokeStyle=G.pos>0?"#1fd286":"#ff4d6a";ctx.lineWidth=1.4*dpr;
+    ctx.beginPath();ctx.moveTo(0,ey);ctx.lineTo(W,ey);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle=G.pos>0?"#1fd286":"#ff4d6a";
+    ctx.font="700 "+(12*dpr)+"px monospace";
+    ctx.fillText((G.pos>0?"多头 @ ":"空头 @ ")+fmt2(G.entry),8*dpr,ey-6*dpr);
+  }
+  // last price marker
+  const ly=Y(G.price);
+  ctx.fillStyle=G.price>=G.prevPrice?"#1fd286":"#ff4d6a";
+  ctx.fillRect(W-pad-54*dpr,ly-9*dpr,54*dpr,18*dpr);
+  ctx.fillStyle="#06121f";ctx.font="700 "+(11*dpr)+"px monospace";
+  ctx.fillText(fmt2(G.price),W-pad-50*dpr,ly+4*dpr);
+}
+
+function renderPos(){
+  const b=$("posbox");
+  if(G.pos===0){b.innerHTML="空仓 — 暂无持仓";return;}
+  const upnl=G.qty*(G.price-G.entry)*G.pos;
+  const cls=upnl>=0?"pos-up":"pos-down";
+  const tag=G.pos>0?'<span class="tag" style="background:var(--green)">多头</span>'
+                   :'<span class="tag" style="background:var(--red);color:#fff">空头</span>';
+  b.innerHTML=tag+" "+G.lev+"x &nbsp; 开仓价 "+fmt2(G.entry)+
+    '<br><span class="'+cls+'" style="font-size:15px;font-weight:800">'+
+    (upnl>=0?"+":"")+fmt(upnl)+"</span> 浮动盈亏";
+}
+function renderSide(){
+  const upnl=G.pos!==0?G.qty*(G.price-G.entry)*G.pos:0;
+  const eq=G.cash+upnl;
+  $("equity").textContent=fmt(eq);
+  $("equity").style.color=eq>=START_CASH?"var(--green)":"var(--red)";
+  $("upnl").textContent=(upnl>=0?"+":"")+fmt(upnl);
+  $("upnl").className="v "+(upnl>=0?"pos-up":"pos-down");
+  const r=(eq/START_CASH-1)*100;
+  $("ret").textContent=(r>=0?"+":"")+r.toFixed(1)+"%";
+  $("ret").className="v "+(r>=0?"pos-up":"pos-down");
+  $("trades").textContent=G.trades+" / "+(G.trades?Math.round(G.wins/G.trades*100)+"%":"—");
+}
+
+// ---- loop ----
+let raf=null,acc=0,last=0;
+function loop(ts){
+  if(!G.running){return;}
+  if(!last)last=ts;
+  let d=ts-last; last=ts;
+  if(!G.paused){
+    acc+=d;
+    while(acc>=1000/60){ step(); sampleRet(); acc-=1000/60; }
+    const left=Math.max(0,ROUND_MS-(performance.now()-G.startTime));
+    $("clock").textContent=Math.floor(left/1000/60)+":"+
+      String(Math.floor(left/1000)%60).padStart(2,"0");
+    $("px").textContent=fmt2(G.price);
+    if(G.newsLeft>0) $("tape").textContent="⚡ "+G.news+"  ·  ";
+    draw(); renderPos(); renderSide();
+    if(left<=0){ endGame(); return; }
+  }
+  raf=requestAnimationFrame(loop);
+}
+let sc=0;
+function sampleRet(){
+  if(++sc%30!==0)return;
+  G.rets.push(G.equity/G.lastEq-1); G.lastEq=G.equity;
+}
+
+function startGame(){
+  const ni=$("nick");
+  if(ni&&ni.value.trim()) localStorage.setItem("alpharush_nick",ni.value.trim().slice(0,16));
+  newGame(); $("overlay").style.display="none";
+  G.running=true; G.startTime=performance.now();
+  last=0;acc=0;sc=0; resize();
+  raf=requestAnimationFrame(loop);
+}
+function endGame(){
+  G.running=false; flatten(true); cancelAnimationFrame(raf);
+  const ret=(G.equity/START_CASH-1)*100;
+  // pseudo-Sharpe over sampled returns
+  let mean=0,sd=0;
+  if(G.rets.length>1){
+    mean=G.rets.reduce((a,b)=>a+b,0)/G.rets.length;
+    sd=Math.sqrt(G.rets.reduce((a,b)=>a+(b-mean)**2,0)/G.rets.length)||1e-9;
+  }
+  const sharpe=sd? (mean/sd)*Math.sqrt(G.rets.length||1):0;
+  const win=G.trades?Math.round(G.wins/G.trades*100):0;
+  let grade,gc;
+  if(ret>=120){grade="S";gc="#ffce4a"}
+  else if(ret>=60){grade="A";gc="#1fd286"}
+  else if(ret>=20){grade="B";gc="#4ea1ff"}
+  else if(ret>=0){grade="C";gc="#7d8aa5"}
+  else if(ret>=-30){grade="D";gc="#ff9f43"}
+  else{grade="F";gc="#ff4d6a"}
+  const best=Math.max(+(localStorage.getItem("alpharush_best")||0),G.equity);
+  localStorage.setItem("alpharush_best",best);
+  const o=$("overlay");
+  o.innerHTML=
+    '<h1>收盘 <b>清算</b></h1>'+
+    '<div class="grade" style="color:'+gc+'">'+grade+'</div>'+
+    '<div class="scoreline">最终净值 <b>'+fmt(G.equity)+'</b> &nbsp; ('+
+      (ret>=0?"+":"")+ret.toFixed(1)+'%)</div>'+
+    '<div class="metrics">'+
+      '<div>已实现盈亏<b>'+(G.realized>=0?"+":"")+fmt(G.realized)+'</b></div>'+
+      '<div>交易次数<b>'+G.trades+'</b></div>'+
+      '<div>胜率<b>'+win+'%</b></div>'+
+      '<div>最大回撤<b>'+(G.maxDD*100).toFixed(1)+'%</b></div>'+
+      '<div>夏普比率(近似)<b>'+sharpe.toFixed(2)+'</b></div>'+
+      '<div>最高连胜倍数<b>x'+G.mult.toFixed(1)+'</b></div>'+
+    '</div>'+
+    '<div class="scoreline">历史最佳净值 <b>'+fmt(best)+'</b></div>'+
+    '<button class="start" id="startBtn">再来一局</button>'+
+    '<div class="board" id="board"><div class="bh">全球排行榜</div>'+
+      '<div class="row">提交成绩中…</div></div>'+
+    '<div class="keys"><kbd>B</kbd> 做多 <kbd>S</kbd> 做空 <kbd>F</kbd> 平仓 '+
+      '<kbd>↑↓</kbd> 调杠杆 <kbd>空格</kbd> 暂停</div>';
+  o.style.display="flex";
+  $("startBtn").onclick=startGame;
+  submitScore({equity:G.equity,ret:ret,sharpe:sharpe,trades:G.trades,win:win,maxDD:G.maxDD*100});
+}
+
+// ---- backend leaderboard ----
+function boardHTML(list,myTs){
+  if(!list||!list.length) return '<div class="bh">全球排行榜</div><div class="row">暂无记录，抢个头名</div>';
+  let h='<div class="bh">全球排行榜 · TOP '+list.length+'</div>';
+  list.forEach((s,i)=>{
+    h+='<div class="row'+(s.ts===myTs?' me':'')+'"><span class="rk">'+(i+1)+
+       '</span><span class="nm">'+s.name+'</span><b>'+fmt(s.equity)+
+       '</b><span style="width:64px;text-align:right">'+
+       (s.ret>=0?'+':'')+s.ret.toFixed(1)+'%</span></div>';
+  });
+  return h;
+}
+function loadBoard(){
+  const el=$("board"); if(!el) return;
+  fetch("/api/leaderboard?limit=10").then(r=>r.json()).then(list=>{
+    const e=$("board"); if(e) e.innerHTML=boardHTML(list);
+  }).catch(()=>{ const e=$("board"); if(e) e.innerHTML=
+    '<div class="bh">全球排行榜</div><div class="row">离线模式 · 排行榜不可用</div>'; });
+}
+function submitScore(s){
+  s.name=(localStorage.getItem("alpharush_nick")||"匿名操盘手");
+  fetch("/api/score",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(s)}).then(r=>r.json()).then(d=>{
+      const e=$("board"); if(!e) return;
+      const me=(d.top||[]).find(x=>x.name===s.name&&Math.abs(x.equity-Math.round(s.equity))<1);
+      let head='<div class="bh">全球排行榜'+(d.rank?(' · 你排第 '+d.rank+' / '+d.total):'')+'</div>';
+      e.innerHTML=head+boardHTML(d.top,me&&me.ts).replace(/^<div class="bh">.*?<\/div>/,'');
+    }).catch(()=>{ const e=$("board"); if(e) e.innerHTML=
+      '<div class="bh">全球排行榜</div><div class="row">离线模式 · 成绩未上传</div>'; });
+}
+
+// ---- inputs ----
+$("startBtn").onclick=startGame;
+$("buyBtn").onclick=()=>openPos(1);
+$("sellBtn").onclick=()=>openPos(-1);
+$("flatBtn").onclick=()=>flatten(false);
+$("lev").addEventListener("input",e=>{$("levv").textContent=e.target.value+"x";});
+document.addEventListener("keydown",e=>{
+  if(!G||!G.running){ if(e.code==="Space"||e.code==="Enter"){startGame();}return;}
+  const k=e.key.toLowerCase();
+  if(k==="b")openPos(1);
+  else if(k==="s")openPos(-1);
+  else if(k==="f")flatten(false);
+  else if(e.code==="Space"){e.preventDefault();G.paused=!G.paused;
+    $("clock").style.opacity=G.paused?.4:1;}
+  else if(e.key==="ArrowUp"||e.key==="ArrowDown"){
+    const s=$("lev"); s.value=Math.min(10,Math.max(1,+s.value+(e.key==="ArrowUp"?1:-1)));
+    $("levv").textContent=s.value+"x";
+  }
+});
+
+const best=+(localStorage.getItem("alpharush_best")||0);
+if(best>0) $("bestLine").innerHTML="历史最佳净值 <b>"+fmt(best)+"</b>";
+{ const ni=$("nick"); if(ni) ni.value=localStorage.getItem("alpharush_nick")||""; }
+loadBoard();
+newGame(); resize(); draw();
+})();
+</script>
+</body>
+</html>
