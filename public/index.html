@@ -69,6 +69,18 @@
   .overlay .keys kbd{background:#1d2840;border:1px solid var(--line);border-radius:5px;
     padding:2px 7px;color:var(--txt);margin:0 2px}
   .start{background:var(--green);color:#06121f;padding:15px 46px;font-size:16px;border-radius:10px}
+  .nick{background:#0d1320;border:1px solid var(--line);color:var(--txt);
+    font:inherit;text-align:center;padding:11px 14px;border-radius:9px;width:240px;
+    margin-bottom:12px;outline:none}
+  .nick:focus{border-color:var(--accent)}
+  .board{margin-top:16px;width:min(420px,86vw);font-size:13px}
+  .board .bh{color:var(--muted);font-size:11px;letter-spacing:2px;margin-bottom:6px}
+  .board .row{display:flex;justify-content:space-between;padding:5px 10px;
+    border-bottom:1px solid #161e30;color:var(--muted)}
+  .board .row b{color:var(--txt);font-weight:700}
+  .board .row.me{background:rgba(78,161,255,.12);border-radius:6px;color:var(--txt)}
+  .board .rk{width:26px;text-align:right;margin-right:10px;color:var(--accent);font-weight:800}
+  .board .nm{flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .scoreline{font-size:15px;margin:6px 0;color:var(--txt)}
   .scoreline b{color:var(--amber)}
   .grade{font-size:64px;font-weight:900;letter-spacing:2px;margin:6px 0}
@@ -139,8 +151,10 @@
           <kbd>B</kbd> 做多 &nbsp; <kbd>S</kbd> 做空 &nbsp; <kbd>F</kbd> 平仓 &nbsp;
           <kbd>↑</kbd><kbd>↓</kbd> 调杠杆 &nbsp; <kbd>空格</kbd> 暂停
         </div>
+        <input id="nick" class="nick" maxlength="16" placeholder="输入你的名号" autocomplete="off" />
         <button class="start" id="startBtn">开始交易</button>
         <div class="scoreline" id="bestLine"></div>
+        <div class="board" id="board"></div>
       </div>
     </div>
     <div class="side">
@@ -369,6 +383,8 @@ function sampleRet(){
 }
 
 function startGame(){
+  const ni=$("nick");
+  if(ni&&ni.value.trim()) localStorage.setItem("alpharush_nick",ni.value.trim().slice(0,16));
   newGame(); $("overlay").style.display="none";
   G.running=true; G.startTime=performance.now();
   last=0;acc=0;sc=0; resize();
@@ -410,10 +426,44 @@ function endGame(){
     '</div>'+
     '<div class="scoreline">历史最佳净值 <b>'+fmt(best)+'</b></div>'+
     '<button class="start" id="startBtn">再来一局</button>'+
+    '<div class="board" id="board"><div class="bh">全球排行榜</div>'+
+      '<div class="row">提交成绩中…</div></div>'+
     '<div class="keys"><kbd>B</kbd> 做多 <kbd>S</kbd> 做空 <kbd>F</kbd> 平仓 '+
       '<kbd>↑↓</kbd> 调杠杆 <kbd>空格</kbd> 暂停</div>';
   o.style.display="flex";
   $("startBtn").onclick=startGame;
+  submitScore({equity:G.equity,ret:ret,sharpe:sharpe,trades:G.trades,win:win,maxDD:G.maxDD*100});
+}
+
+// ---- backend leaderboard ----
+function boardHTML(list,myTs){
+  if(!list||!list.length) return '<div class="bh">全球排行榜</div><div class="row">暂无记录，抢个头名</div>';
+  let h='<div class="bh">全球排行榜 · TOP '+list.length+'</div>';
+  list.forEach((s,i)=>{
+    h+='<div class="row'+(s.ts===myTs?' me':'')+'"><span class="rk">'+(i+1)+
+       '</span><span class="nm">'+s.name+'</span><b>'+fmt(s.equity)+
+       '</b><span style="width:64px;text-align:right">'+
+       (s.ret>=0?'+':'')+s.ret.toFixed(1)+'%</span></div>';
+  });
+  return h;
+}
+function loadBoard(){
+  const el=$("board"); if(!el) return;
+  fetch("/api/leaderboard?limit=10").then(r=>r.json()).then(list=>{
+    const e=$("board"); if(e) e.innerHTML=boardHTML(list);
+  }).catch(()=>{ const e=$("board"); if(e) e.innerHTML=
+    '<div class="bh">全球排行榜</div><div class="row">离线模式 · 排行榜不可用</div>'; });
+}
+function submitScore(s){
+  s.name=(localStorage.getItem("alpharush_nick")||"匿名操盘手");
+  fetch("/api/score",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(s)}).then(r=>r.json()).then(d=>{
+      const e=$("board"); if(!e) return;
+      const me=(d.top||[]).find(x=>x.name===s.name&&Math.abs(x.equity-Math.round(s.equity))<1);
+      let head='<div class="bh">全球排行榜'+(d.rank?(' · 你排第 '+d.rank+' / '+d.total):'')+'</div>';
+      e.innerHTML=head+boardHTML(d.top,me&&me.ts).replace(/^<div class="bh">.*?<\/div>/,'');
+    }).catch(()=>{ const e=$("board"); if(e) e.innerHTML=
+      '<div class="bh">全球排行榜</div><div class="row">离线模式 · 成绩未上传</div>'; });
 }
 
 // ---- inputs ----
@@ -438,6 +488,8 @@ document.addEventListener("keydown",e=>{
 
 const best=+(localStorage.getItem("alpharush_best")||0);
 if(best>0) $("bestLine").innerHTML="历史最佳净值 <b>"+fmt(best)+"</b>";
+{ const ni=$("nick"); if(ni) ni.value=localStorage.getItem("alpharush_nick")||""; }
+loadBoard();
 newGame(); resize(); draw();
 })();
 </script>
