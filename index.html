@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Alpha Rush" />
+<meta name="theme-color" content="#0a0e17" />
+<meta name="color-scheme" content="dark" />
 <title>ALPHA RUSH — 90-Second Trading Desk</title>
 <style>
   :root{
@@ -74,6 +80,42 @@
   .flash{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .12s}
   .combo{position:absolute;right:16px;top:12px;font-weight:900;font-size:20px;
     color:var(--amber);opacity:0;transition:opacity .2s;text-shadow:0 0 14px rgba(255,206,74,.6)}
+  /* ---- touch / iOS ---- */
+  html,body{overscroll-behavior:none;touch-action:none;
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  button{-webkit-tap-highlight-color:transparent}
+  .lev input{touch-action:auto}
+  @media (max-width:760px),(orientation:portrait){
+    body{padding:0;align-items:stretch;justify-content:stretch}
+    .app{width:100%;height:100dvh;border:0;border-radius:0;
+      padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+    header{padding:10px 14px;gap:10px}
+    .logo{font-size:14px} .clock{font-size:16px;min-width:56px}
+    .ticker{font-size:11px}
+    .stage{grid-template-columns:1fr;grid-template-rows:1fr auto}
+    .chartwrap{border-right:0;border-bottom:1px solid var(--line)}
+    .side{flex-direction:row;flex-wrap:wrap;align-items:stretch}
+    .big{flex:1 1 40%;border-bottom:0;border-right:1px solid #161e30;padding:10px 14px}
+    .big .num{font-size:22px}
+    .stat{flex:1 1 28%;flex-direction:column;gap:1px;border-bottom:0;
+      border-right:1px solid #161e30;padding:8px 10px;font-size:12px;justify-content:center}
+    .pos{flex:1 1 100%;order:5;padding:8px 14px;border-bottom:0;border-top:1px solid #161e30}
+    .controls{flex:1 1 100%;order:6;margin-top:0;grid-template-columns:1fr 1fr;
+      gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+      border-top:1px solid #161e30}
+    button{padding:18px 0;font-size:15px}
+    .overlay h1{font-size:26px} .overlay p{font-size:13px}
+    .overlay .keys{display:none}
+    .grade{font-size:52px}
+    .start{padding:16px 38px;width:auto}
+  }
+  @media (max-width:760px) and (orientation:landscape){
+    .stage{grid-template-columns:1fr 220px;grid-template-rows:1fr}
+    .side{flex-direction:column}
+    .big{flex:0 0 auto;border-right:0;border-bottom:1px solid #161e30}
+    .stat{flex:0 0 auto;flex-direction:row;border-right:0;border-bottom:1px solid #161e30}
+    .pos{order:0} .controls{order:0}
+  }
 </style>
 </head>
 <body>
